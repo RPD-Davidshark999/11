@@ -1,6 +1,15 @@
 
 export const translations = {
   en: {
+    login: {
+      title: "Sign In",
+      subtitle: "Access NovaStream Pro Dashboard",
+      userPlaceholder: "Username",
+      passPlaceholder: "Password",
+      btn: "Login to Dashboard",
+      error: "Invalid credentials. Please try again.",
+      logout: "Log Out",
+    },
     nav: {
       explore: "Explore",
       aiDiscovery: "AI Discovery",
@@ -53,6 +62,15 @@ export const translations = {
     }
   },
   zh: {
+    login: {
+      title: "账号登录",
+      subtitle: "访问 NovaStream Pro 控制面板",
+      userPlaceholder: "用户名",
+      passPlaceholder: "密码",
+      btn: "登录系统",
+      error: "用户名或密码错误，请重试。",
+      logout: "退出登录",
+    },
     nav: {
       explore: "发现",
       aiDiscovery: "AI 探索",

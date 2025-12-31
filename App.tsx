@@ -16,12 +16,22 @@ import {
   ExternalLink,
   Trash2,
   Tv,
-  Languages
+  Languages,
+  Lock,
+  User as UserIcon,
+  LogOut
 } from 'lucide-react';
 import { API_ROUTES, APP_NAME } from './constants';
 import { ApiRoute, WatchHistoryItem, MovieInsight } from './types';
 import { getMovieInsights, getTrendingRecommendations } from './services/geminiService';
 import { translations, Language } from './translations';
+
+// Hardcoded Credentials
+const VALID_CREDENTIALS: Record<string, string> = {
+  "shark": "686130",
+  "shark1": "123456",
+  "shark2": "9982qwe"
+};
 
 // Reusable Components
 const NavItem: React.FC<{ icon: React.ReactNode; label: string; active?: boolean; onClick?: () => void }> = ({ icon, label, active, onClick }) => (
@@ -47,6 +57,13 @@ const FeatureCard: React.FC<{ icon: React.ReactNode; title: string; description:
 );
 
 const App: React.FC = () => {
+  // Auth State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [loginError, setLoginError] = useState(false);
+
+  // App State
   const [lang, setLang] = useState<Language>('zh');
   const [videoUrl, setVideoUrl] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -61,6 +78,9 @@ const App: React.FC = () => {
 
   // Persistence & Initial Data
   useEffect(() => {
+    const savedAuth = localStorage.getItem('ns_auth');
+    if (savedAuth === 'true') setIsAuthenticated(true);
+
     const savedHistory = localStorage.getItem('ns_history');
     if (savedHistory) setHistory(JSON.parse(savedHistory));
 
@@ -70,13 +90,28 @@ const App: React.FC = () => {
     getTrendingRecommendations(savedLang || lang).then(setTrending);
   }, []);
 
+  const handleLogin = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (VALID_CREDENTIALS[usernameInput] === passwordInput) {
+      setIsAuthenticated(true);
+      setLoginError(false);
+      localStorage.setItem('ns_auth', 'true');
+    } else {
+      setLoginError(true);
+      setTimeout(() => setLoginError(false), 3000);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('ns_auth');
+  };
+
   const toggleLanguage = () => {
     const newLang = lang === 'en' ? 'zh' : 'en';
     setLang(newLang);
     localStorage.setItem('ns_lang', newLang);
-    // Refresh trending for new language
     getTrendingRecommendations(newLang).then(setTrending);
-    // Refresh AI insight if visible
     if (isPlaying && videoUrl) {
         setIsLoadingInsight(true);
         getMovieInsights(videoUrl, newLang).then(setAiInsight).finally(() => setIsLoadingInsight(false));
@@ -118,6 +153,89 @@ const App: React.FC = () => {
 
   const currentApi = useMemo(() => API_ROUTES[activeRouteIndex], [activeRouteIndex]);
 
+  // LOGIN SCREEN
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden">
+        <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+        
+        <div className="absolute top-8 right-8">
+           <button 
+              onClick={toggleLanguage}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 glass-effect text-slate-400 hover:text-white transition-all text-xs font-bold"
+            >
+              <Languages size={16} />
+              {lang === 'en' ? 'EN' : '中'}
+            </button>
+        </div>
+
+        <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-500 z-10">
+          <div className="text-center mb-10">
+            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-indigo-500/20">
+              <Tv className="text-white" size={32} />
+            </div>
+            <h1 className="text-3xl font-extrabold text-white mb-2">{t.login.title}</h1>
+            <p className="text-slate-400">{t.login.subtitle}</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="glass-effect p-8 rounded-3xl border-white/10 space-y-6 shadow-2xl">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">{t.login.userPlaceholder}</label>
+                <div className="relative group">
+                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" size={18} />
+                  <input 
+                    type="text"
+                    value={usernameInput}
+                    onChange={(e) => setUsernameInput(e.target.value)}
+                    className="w-full bg-slate-900/50 border border-white/5 rounded-xl py-3 pl-12 pr-4 text-white focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
+                    placeholder="Enter username"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">{t.login.passPlaceholder}</label>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" size={18} />
+                  <input 
+                    type="password"
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    className="w-full bg-slate-900/50 border border-white/5 rounded-xl py-3 pl-12 pr-4 text-white focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
+                    placeholder="Enter password"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm font-medium animate-in slide-in-from-top-2">
+                {t.login.error}
+              </div>
+            )}
+
+            <button 
+              type="submit"
+              className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              <Zap size={18} fill="currentColor" />
+              {t.login.btn}
+            </button>
+          </form>
+
+          <p className="text-center text-slate-500 text-xs mt-8">
+            &copy; 2024 NovaStream Entertainment • Secure Access Only
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // MAIN APP (AUTHENTICATED)
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 overflow-x-hidden relative flex flex-col">
       <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
@@ -158,8 +276,12 @@ const App: React.FC = () => {
               <HistoryIcon size={20} />
               {history.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />}
             </button>
-            <button className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-indigo-500/20 hidden md:block">
-              {t.nav.proAccount}
+            <button 
+              onClick={handleLogout}
+              className="px-5 py-2.5 border border-red-500/20 text-red-400 hover:bg-red-500/10 rounded-xl text-sm font-semibold transition-all flex items-center gap-2"
+            >
+              <LogOut size={16} />
+              {t.login.logout}
             </button>
           </div>
         </div>
