@@ -1,0 +1,7 @@
+{
+  "name": "NovaStream Pro",
+  "description": "An advanced video parsing and playback platform featuring AI-powered movie insights, multi-source routing, and a cinematic user experience.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
